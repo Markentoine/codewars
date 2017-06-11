@@ -32,7 +32,7 @@ def x(n)
   end
   back = front.reverse
   result = front + result + back
-  result.join
+  result.join.strip
 end
 
 puts x(5)
