@@ -28,33 +28,33 @@ nth Chando's number
 
 def nth_chandos_number(n)
   return 5 if n == 1
-  counter = 1
-  max = 1
-  current = 0
-  intermediate = 0
-  powers = [1]
-  chando = 25
+  result = []
+  i = 1
   loop do
-    if powers.size == max
-      max += 1
-      current = 0
-      intermediate = 0
-      powers = [max]
-    elsif current <= max - 1
-      current += 1
-      powers = [current, max]
-    else
-      powers = [max] if intermediate == 0
-      intermediate += 1
-      powers.unshift(intermediate)
+    temp_result = [[1]]
+    construct_suite(2, i, temp_result)
+    if temp_result.size > n
+      result = temp_result
+      break
     end
-    p powers
-    chando = powers.map { |p| 5**p }.reduce(:+)
-    counter += 1
-    break if counter == n
+    i += 1
   end
-  chando
+  result.take(n).last.reduce(0) { |sum, power| sum += (5 ** power); sum }
 end
 
-p nth_chandos_number(9)
+def construct_suite(x, n, result)
+  return if x == n + 1
+  temp = result.zip(([x] * result.size)).map(&:flatten)
+  temp.unshift([x])
+  temp.each { |v| result << v }
+  construct_suite((x + 1), n, result)
+  result
+end
 
+p construct_suite(2, 4, [[1]])
+p nth_chandos_number(6)
+
+#other solution
+def nth_chandos_number(n)
+(n.to_s(2)+"0").to_i(5)
+end
