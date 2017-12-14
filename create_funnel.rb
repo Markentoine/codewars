@@ -299,10 +299,20 @@ Another edge case is: When funnel is full, fill() will not changes the funnel.
 class Funnel
   # coding and coding...
   def initialize
-    @funnel = [["\\", ' ', ' ' , ' ', ' ', ' ', ' ', ' ', ' ', ' ', "/"], [' ', "\\", ' ', ' ', ' ', ' ', ' ', ' ', ' ',"/"], [' ', ' ',"\\", ' ', ' ', ' ', ' ', ' ', "/"], [' ', ' ', ' ', "\\", ' ', ' ', ' ', "/"], [' ', ' ', ' ', ' ', "\\", ' ', "/"]]
+    @funnel = [["\\", :eleven, ' ' , :twelve, ' ', :thirteen, ' ', :fourteen, ' ', :fifteen, "/"], [' ', "\\", :seven, ' ', :eight, ' ', :nine, ' ', :ten,"/"], [' ', ' ',"\\", :four, ' ', :five, ' ', :six, "/"], [' ', ' ', ' ', "\\", :two, ' ', :three, "/"], [' ', ' ', ' ', ' ', "\\", :one, "/"]]
+    @positions = { one: '1', two: '2', three: ' ', four: ' ', five: ' ', six: ' ', seven: ' ', eight: ' ', nine: ' ', ten: ' ', eleven: ' ', twelve: ' ', thirteen: ' ', fourteen: ' ', fifteen: ' ' }
   end
 
-  def fill *args
+  def fill(*args)
+    fill_positions(args)
+    @funnel.map! { |line| line.map do |value|
+      if @positions.keys.include?(value)
+        @positions[value]
+      else
+        value
+      end
+    end
+    }
   end
 
   def drip
@@ -311,6 +321,25 @@ class Funnel
   def to_s
     @funnel.map(&:join).each { |line| puts line }
   end
+
+  def already_filled?
+    @positions.values.any? { |v| v != ' ' }
+  end
+
+  def fill_positions(args)
+    keys_to_fill = if already_filled?
+      @positions.keys[(filling_level), args.size]
+      else
+        @positions.keys[0..(args.size - 1)]
+    end
+    positioning = keys_to_fill.zip(args.first(keys_to_fill.size)).to_h
+    @positions = @positions.merge(positioning)
+  end
+
+  def filling_level
+    @positions.find_index { |_, value| value == ' ' }
+  end
+
 end
 
 funnel = Funnel.new
