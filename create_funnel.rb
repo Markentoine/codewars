@@ -296,29 +296,43 @@ Another edge case is: When funnel is full, fill() will not changes the funnel.
 
 =end
 
+
 class Funnel
-  # coding and coding...
+
+  EMPTY_FUNNEL = [["\\", :eleven, ' ' , :twelve, ' ', :thirteen, ' ', :fourteen, ' ', :fifteen, "/"], [' ', "\\", :seven, ' ', :eight, ' ', :nine, ' ', :ten,"/"], [' ', ' ',"\\", :four, ' ', :five, ' ', :six, "/"], [' ', ' ', ' ', "\\", :two, ' ', :three, "/"], [' ', ' ', ' ', ' ', "\\", :one, "/"]]
+
+  POSITIONS_TO_DISPLAY = { one: ' ', two: ' ', three: ' ', four: ' ', five: ' ', six: ' ', seven: ' ', eight: ' ', nine: ' ', ten: ' ', eleven: ' ', twelve: ' ', thirteen: ' ', fourteen: ' ', fifteen: ' ' }
+
   def initialize
-    @funnel = [["\\", :eleven, ' ' , :twelve, ' ', :thirteen, ' ', :fourteen, ' ', :fifteen, "/"], [' ', "\\", :seven, ' ', :eight, ' ', :nine, ' ', :ten,"/"], [' ', ' ',"\\", :four, ' ', :five, ' ', :six, "/"], [' ', ' ', ' ', "\\", :two, ' ', :three, "/"], [' ', ' ', ' ', ' ', "\\", :one, "/"]]
-    @positions = { one: '1', two: '2', three: ' ', four: ' ', five: ' ', six: ' ', seven: ' ', eight: ' ', nine: ' ', ten: ' ', eleven: ' ', twelve: ' ', thirteen: ' ', fourteen: ' ', fifteen: ' ' }
+    @size = 15
+    @positions = building_positions
+  end
+
+  def building_positions
+    (1..@size).to_a.zip(Array.new(@size) { ' ' }).to_h
   end
 
   def fill(*args)
-    fill_positions(args)
-    @funnel.map! { |line| line.map do |value|
-      if @positions.keys.include?(value)
-        @positions[value]
-      else
-        value
-      end
-    end
-    }
+    keys_to_fill = if already_filled?
+                     @positions.keys[(filling_level), args.size]
+                   else
+                     @positions.keys[0..(args.size - 1)]
+                   end
+    positioning = keys_to_fill.zip(args.first(keys_to_fill.size)).to_h
+    @positions = @positions.merge(positioning)
   end
 
   def drip
+    return if @positions[1] == ' '
+    positions.to_arr[]
+  end
+
+  def fill_to_display
+    @positions_to_display = POSITIONS_TO_DISPLAY.clone.map
   end
 
   def to_s
+    fill_funnel(@positions_to_display)
     @funnel.map(&:join).each { |line| puts line }
   end
 
@@ -326,22 +340,84 @@ class Funnel
     @positions.values.any? { |v| v != ' ' }
   end
 
-  def fill_positions(args)
-    keys_to_fill = if already_filled?
-      @positions.keys[(filling_level), args.size]
+  def fill_funnel(positions_to_display)
+    @funnel = EMPTY_FUNNEL.clone
+    @funnel.map! { |line| line.map do |value|
+      if positions_to_display.keys.include?(value)
+        positions_to_display[value]
       else
-        @positions.keys[0..(args.size - 1)]
+        value
+      end
     end
-    positioning = keys_to_fill.zip(args.first(keys_to_fill.size)).to_h
-    @positions = @positions.merge(positioning)
+    }
   end
 
   def filling_level
     @positions.find_index { |_, value| value == ' ' }
   end
 
+  def define_weight(position)
+    if position == :two
+      load = [:four, :five, :seven, :eight, :nine, :eleven, :twelve, :thirteen, :fourteen]
+      estimate_weight(load)
+    elsif position == :three
+      load = [:five, :six, :eight, :nine, :ten, :twelve, :thirteen, :fourteen, :fifteen]
+      estimate_weight(load)
+    end
+  end
+
+  def estimate_weight(load)
+    load.reduce(0) { |result, value| result += 1 if @positions[value] != ' '; result }
+  end
+
+  def building_subfunnel(base)
+    rank = find_rank(base)
+    base_position = find_position_in_funnel(base, rank)
+    @subfunnel = [[base]]
+    count = 2
+    @funnel_max.each_with_index.reduce(@subfunnel) do |subfunnel, (line, index)|
+      if index > rank
+        subfunnel << line[base_position, count]
+        count += 1
+      end
+      subfunnel
+    end
+  end
+
+  def find_position_in_funnel(base, rank)
+    @funnel_max[rank].find_index { |position| position == base }
+  end
+
+  def find_rank(base)
+    build_funnel_max.find_index { |rank| rank.include?(base) }
+  end
+
+  def build_funnel_max
+    all_positions = (1..@size).to_a
+    level = 1
+    @funnel_max = []
+    loop do
+      @funnel_max << all_positions.take(level)
+      all_positions -= @funnel_max.flatten
+      p all_positions
+      level += 1
+      break if all_positions.empty?
+    end
+    @funnel_max
+  end
+
 end
 
 funnel = Funnel.new
+funnel.fill 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E'
+funnel.to_s
+funnel.drip
+funnel.to_s
+
+
+funnel = Funnel.new
+funnel.fill 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E'
+funnel.to_s
+funnel.drip
 funnel.to_s
 
