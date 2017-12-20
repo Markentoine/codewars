@@ -303,14 +303,14 @@ class Funnel
 
   POSITIONS_TO_DISPLAY = { one: ' ', two: ' ', three: ' ', four: ' ', five: ' ', six: ' ', seven: ' ', eight: ' ', nine: ' ', ten: ' ', eleven: ' ', twelve: ' ', thirteen: ' ', fourteen: ' ', fifteen: ' ' }
 
+  CONVERSION = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14, fifteen: 15 }
+
   def initialize
     @size = 15
-    @positions = building_positions
+    @positions = POSITIONS_TO_DISPLAY.clone
   end
 
-  def building_positions
-    (1..@size).to_a.zip(Array.new(@size) { ' ' }).to_h
-  end
+  # Filling the funnel
 
   def fill(*args)
     keys_to_fill = if already_filled?
@@ -320,20 +320,6 @@ class Funnel
                    end
     positioning = keys_to_fill.zip(args.first(keys_to_fill.size)).to_h
     @positions = @positions.merge(positioning)
-  end
-
-  def drip
-    return if @positions[1] == ' '
-    positions.to_arr[]
-  end
-
-  def fill_to_display
-    @positions_to_display = POSITIONS_TO_DISPLAY.clone.map
-  end
-
-  def to_s
-    fill_funnel(@positions_to_display)
-    @funnel.map(&:join).each { |line| puts line }
   end
 
   def already_filled?
@@ -356,21 +342,45 @@ class Funnel
     @positions.find_index { |_, value| value == ' ' }
   end
 
+  # Display the funnel
+
+  def to_s
+    fill_funnel(@positions)
+    @funnel.map(&:join).each { |line| puts line }
+  end
+
+  # Dripping
+
+  def drip
+    dripping(1)
+    to_s
+  end
+
+  def dripping(n)
+    return if define_weight(n) == 0
+    subfunnel = building_subfunnel(n)
+    dripped = if define_weight(subfunnel[1][0]) >= define_weight(subfunnel[1][1])
+                subfunnel[1][0]
+              else
+                subfunnel[1][1]
+              end
+    @positions[CONVERSION.invert[n]] = @positions[CONVERSION.invert[dripped]]
+    dripping(dripped)
+  end
+
   def define_weight(position)
-    if position == :two
-      load = [:four, :five, :seven, :eight, :nine, :eleven, :twelve, :thirteen, :fourteen]
-      estimate_weight(load)
-    elsif position == :three
-      load = [:five, :six, :eight, :nine, :ten, :twelve, :thirteen, :fourteen, :fifteen]
-      estimate_weight(load)
-    end
+    load = building_subfunnel(CONVERSION.invert[position]).flatten.map { |position| CONVERSION.invert[position] }
+    estimate_weight(load) - 1
   end
 
   def estimate_weight(load)
     load.reduce(0) { |result, value| result += 1 if @positions[value] != ' '; result }
   end
 
+  #creation of subfunnels
+
   def building_subfunnel(base)
+    base = CONVERSION[base] if base.class == Symbol
     rank = find_rank(base)
     base_position = find_position_in_funnel(base, rank)
     @subfunnel = [[base]]
@@ -389,7 +399,8 @@ class Funnel
   end
 
   def find_rank(base)
-    build_funnel_max.find_index { |rank| rank.include?(base) }
+    build_funnel_max
+    @funnel_max.find_index { |rank| rank.include?(base) }
   end
 
   def build_funnel_max
@@ -399,25 +410,15 @@ class Funnel
     loop do
       @funnel_max << all_positions.take(level)
       all_positions -= @funnel_max.flatten
-      p all_positions
       level += 1
       break if all_positions.empty?
     end
-    @funnel_max
   end
 
 end
 
 funnel = Funnel.new
-funnel.fill 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E'
+funnel.fill 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', ' ', 'C', 'D', 'E'
 funnel.to_s
 funnel.drip
-funnel.to_s
-
-
-funnel = Funnel.new
-funnel.fill 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E'
-funnel.to_s
-funnel.drip
-funnel.to_s
 
