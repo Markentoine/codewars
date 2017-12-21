@@ -297,7 +297,9 @@ Another edge case is: When funnel is full, fill() will not changes the funnel.
 =end
 
 
+
 class Funnel
+  attr_reader :funnel, :size
 
   EMPTY_FUNNEL = [["\\", :eleven, ' ' , :twelve, ' ', :thirteen, ' ', :fourteen, ' ', :fifteen, "/"], [' ', "\\", :seven, ' ', :eight, ' ', :nine, ' ', :ten,"/"], [' ', ' ',"\\", :four, ' ', :five, ' ', :six, "/"], [' ', ' ', ' ', "\\", :two, ' ', :three, "/"], [' ', ' ', ' ', ' ', "\\", :one, "/"]]
 
@@ -313,24 +315,18 @@ class Funnel
   # Filling the funnel
 
   def fill(*args)
-    keys_to_fill = if already_filled?
-                     @positions.keys[(filling_level), args.size]
-                   else
-                     @positions.keys[0..(args.size - 1)]
-                   end
-    positioning = keys_to_fill.zip(args.first(keys_to_fill.size)).to_h
-    @positions = @positions.merge(positioning)
-  end
-
-  def already_filled?
-    @positions.values.any? { |v| v != ' ' }
+    @positions.each do |key, value|
+      if value == ' ' || value.nil?
+        @positions[key] = args.shift
+      end
+    end
   end
 
   def fill_funnel(positions_to_display)
     @funnel = EMPTY_FUNNEL.clone
     @funnel.map! { |line| line.map do |value|
       if positions_to_display.keys.include?(value)
-        positions_to_display[value]
+        positions_to_display[value].nil? ? ' ' : positions_to_display[value]
       else
         value
       end
@@ -346,18 +342,23 @@ class Funnel
 
   def to_s
     fill_funnel(@positions)
-    @funnel.map(&:join).each { |line| puts line }
+    @funnel.reduce("") { |result, line| result += line.join + "\n"; result}.join
   end
 
   # Dripping
 
   def drip
+    dripping_piece = @positions[:one]
     dripping(1)
-    to_s
+    dripping_piece
   end
 
   def dripping(n)
-    return if define_weight(n) == 0
+    return if n.nil? || n == " "
+    if define_weight(n) == 0
+      @positions[CONVERSION.invert[n]] = ' '
+      return
+    end
     subfunnel = building_subfunnel(n)
     dripped = if define_weight(subfunnel[1][0]) >= define_weight(subfunnel[1][1])
                 subfunnel[1][0]
@@ -418,7 +419,15 @@ class Funnel
 end
 
 funnel = Funnel.new
-funnel.fill 1, 2, 3, 4, 5, 6, 7, 8, 9, 'A', ' ', 'C', 'D', 'E'
+funnel.fill 1, 2, 3
 funnel.to_s
+p funnel.funnel.map(&:join).each { |line| puts line }
 funnel.drip
+funnel.to_s
+p funnel.funnel.map(&:join).each { |line| puts line }
+funnel.fill 4, 5, 6, 7, 8, 9, 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'
+funnel.to_s
+p funnel.funnel.map(&:join).each { |line| puts line }
+
+
 
