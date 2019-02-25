@@ -4,7 +4,7 @@ const removeEmptyLines = lines => {
             result.push(line);
         }
         return result;
-    }, [])
+    }, []);
 };
 
 const sanitizeLines = lines => {
